@@ -12,6 +12,8 @@
             var game = new Phaser.Game(800, 600, Phaser.AUTO, '', {preload: preload, create: create, update: update});
 
             function preload() {
+                game.load.image('baddie', 'assets/baddie.png');
+                game.load.image('laser', 'assets/laser.png');
                 game.load.image('platform', 'assets/platform.png');
                 game.load.image('ground', 'assets/ground.png');
                 game.load.image('goal', 'assets/star.png');
@@ -23,10 +25,13 @@
             // Variable declaration
             var scoreTextP1;
             var scoreTextP2;
+            var scoreTextbd;
 
             var scoreP1 = 0;
             var scoreP2 = 0;
+            var scorebd = 0;
 
+            var isBdLookingLeft = 1
             var isP1LookingLeft = 0;
             var isP2LookingLeft = 1;
 
@@ -39,9 +44,9 @@
             // For timer
             var timer;
             var timerText = 0;
-            
+
             // Star timer
-            var starTimer; 
+            var starTimer;
 
             function create() {
                 game.physics.startSystem(Phaser.Physics.ARCADE);
@@ -49,28 +54,52 @@
                 var ground;
                 // For background.
                 bg = game.add.sprite(0, 0, 'bg');
-                bg.animations.add('twinkle', [0, 1, 2, 3, 4], 8, true);
+                // bg.animations.add('twinkle', [0, 1, 2, 3, 4], 8, true);
 
                 // For platforms.
                 platforms = game.add.group();
                 platforms.enableBody = true;
 
-                ledge = platforms.create(575, 400, 'platform');
+                ledge = platforms.create(420, 300, 'laser');
                 ledge.body.immovable = true;
-                ledge = platforms.create(-175, 400, 'platform');
+                ledge.width = 70
+                ledge = platforms.create(700, 300, 'laser');
                 ledge.body.immovable = true;
-                ledge = platforms.create(200, 260, 'platform');
+                ledge.width = 70
+                ledge = platforms.create(300, 200, 'laser');
                 ledge.body.immovable = true;
-
+                ledge.width = 70
+                ledge = platforms.create(500, 100, 'laser');
+                ledge.body.immovable = true;
+                ledge.width = 70
+                ledge = platforms.create(300, 300, 'laser');
+                ledge.body.immovable = true;
+                ledge.width = 70
+                ledge = platforms.create(180, 300, 'laser');
+                ledge.body.immovable = true;
+                ledge.width = 70
+                ledge = platforms.create(100, 200, 'laser');
+                ledge.body.immovable = true;
+                ledge.width = 70
+                ledge = platforms.create(40, 450, 'laser');
+                ledge.body.immovable = true;
+                ledge.width = 70
+                ledge = platforms.create(40, 50, 'laser');
+                ledge.body.immovable = true;
+                ledge.width = 70
+                ledge = platforms.create(500, 450, 'laser');
+                ledge.body.immovable = true;
+                ledge.width = 70
                 // For ground.
-                ground = platforms.create(0, game.world.height - 64, 'ground');
+                ground = platforms.create(0, game.world.height - 64, 'laser');
+                ground.width = 1000000
                 ground.body.immovable = true;
 
                 // Creating timer.
                 timer = game.time.create(false);
                 timer.loop(30000, timerChecker, this);
                 timer.start();
-                
+
                 //spawning the stars
                 starTimer = game.time.create(false);
                 starTimer.loop(1000, spawnStar, this);
@@ -81,9 +110,22 @@
                 stars.enableBody = true;
                 stars.physicsBodyType = Phaser.Physics.ARCADE;
 
+                baddie = game.add.sprite(700, 50, 'baddie');
+                baddie.height = 40
+                baddie.width = 40
+                game.physics.arcade.enable(baddie);
+                baddie.body.gravity.y = 300;
+                baddie.body.collideWorldBounds = true;
+
+                cursors = game.input.keyboard.createCursorKeys();
+                y = game.input.keyboard.addKey(Phaser.Keyboard.Y);
+                g = game.input.keyboard.addKey(Phaser.Keyboard.G);
+                h = game.input.keyboard.addKey(Phaser.Keyboard.H);
+                j = game.input.keyboard.addKey(Phaser.Keyboard.J);
+
                 // Adding players.
                 player = game.add.sprite(50, game.world.height - 900, 'player1');
-                player2 = game.add.sprite(718, game.world.height - 900, 'player2');
+                player2 = game.add.sprite(50, game.world.height - 900, 'player2');
                 game.physics.arcade.enable(player);
                 game.physics.arcade.enable(player2);
 
@@ -111,12 +153,17 @@
                 a = game.input.keyboard.addKey(Phaser.Keyboard.A);
                 s = game.input.keyboard.addKey(Phaser.Keyboard.S);
                 d = game.input.keyboard.addKey(Phaser.Keyboard.D);
+                q = game.input.keyboard.addKey(Phaser.Keyboard.Q);
+                e = game.input.keyboard.addKey(Phaser.Keyboard.E);
+                n = game.input.keyboard.addKey(Phaser.Keyboard.N);
+                m = game.input.keyboard.addKey(Phaser.Keyboard.M);
                 spacebar = game.input.keyboard.addKey(Phaser.Keyboard.SPACEBAR);
 
                 // Adding text to place on top of screen.
                 scoreTextP1 = game.add.text(20, 20, 'Score: 0', {fontSize: '25px', fill: '#FFF'});
                 scoreTextP2 = game.add.text(660, 20, 'Score: 0', {fontSize: '25px', fill: '#FFF'});
-                timerText = game.add.text(380, 20, timer.duration.toFixed(0) / 1000, {fontSize: '25px', fill: '#FFF'});
+                scoreTextbd = game.add.text(340, 20, 'Score: 0', {fontSize: '25px', fill: '#FFF'});
+                timerText = game.add.text(380, 60, timer.duration.toFixed(0) / 1000, {fontSize: '25px', fill: '#FFF'});
 
                 // Emitter values for the snowflakes.
                 back_emitter = game.add.emitter(game.world.centerX, -32, 600);
@@ -135,20 +182,24 @@
             function update() {
                 var hitPlatformP1 = game.physics.arcade.collide(player, platforms);
                 var hitPlatformP2 = game.physics.arcade.collide(player2, platforms);
-                game.physics.arcade.collide(stars, platforms);
+                var hitPlatformbd = game.physics.arcade.collide(baddie, platforms);
 
+                game.physics.arcade.collide(stars, platforms);
+                baddie.body.velocity.x = 0;
                 player.body.velocity.x = 0;
                 player2.body.velocity.x = 0;
                 bg.animations.play('twinkle');
 
                 // What happens if both players are alive?
                 if (player.alive && player2.alive) {
+
                     //player input
                     if (a.isDown) {
                         player.body.velocity.x = -200;
                         player.animations.play('left');
                         isP1LookingLeft = 1;
                     }
+
                     else {
                         if (d.isDown) {
                             player.body.velocity.x = 200;
@@ -166,6 +217,33 @@
                     }
                     if (w.isDown && player.body.touching.down && hitPlatformP1) {
                         player.body.velocity.y = -300;
+                    }
+
+                    if (g.isDown) {
+                        baddie.body.velocity.x = -200;
+                    }
+                    else {
+                      if (j.isDown) {
+                          baddie.body.velocity.x = 200;
+                      }
+                    }
+
+                    // if (j.isDown) {
+                    //     baddie.body.velocity.x = 200;
+                    // }
+                                        // else {
+
+                    //     else {
+                    //         // if (isBdLookingLeft == 1) {
+                    //         //     baddie.animations.play('standLeft');
+                    //         // }
+                    //         // else {
+                    //         //     baddie.animations.play('standRight');
+                    //         // }
+                    //     }
+                    // }
+                    if (y.isDown && baddie.body.touching.down && hitPlatformbd) {
+                        baddie.body.velocity.y = -300;
                     }
 
                     //player2 input
@@ -200,12 +278,14 @@
                     if (spacebar.isDown) {
                         scoreP1 = 0;
                         scoreP2 = 0;
+                        scorebd = 0;
                         location.reload()
                     }
                 }
-
                 // What happens if a player collects a star?
                 game.physics.arcade.overlap(player, stars, collectP1, null, this);
+
+                game.physics.arcade.overlap(baddie, stars, collectBd, null, this);
 
                 game.physics.arcade.overlap(player2, stars, collectP2, null, this);
 
@@ -223,6 +303,12 @@
 
                     scoreP2 += 5;
                     scoreTextP2.text = 'Score: ' + scoreP2;
+                }
+                function collectBd(baddie, stars) {
+                    stars.kill();
+
+                    scorebd += 10;
+                    scoreTextbd.text = 'Score: ' + scorebd;
                 }
             } // End of the update function.
 
@@ -244,7 +330,7 @@
                     player.kill();
                     player2.kill();
                 }
-                
+
                 stars.removeAll();
                 timer.stop();
                 starTimer.stop();
